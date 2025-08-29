@@ -1,15 +1,15 @@
 #include <atomic>
+#include <condition_variable>
 #include <csignal>
 #include <cstdio>
 #include <exception>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <mutex>
+#include <queue>
 #include <string>
 #include <thread>
-#include <mutex>
-#include <condition_variable>
-#include <queue>
 
 #include <tgbot/net/TgLongPoll.h>
 #include <tgbot/tgbot.h>
@@ -58,7 +58,12 @@ int main() {
   spdlog::info("Token: {}", token);
   Bot bot(token);
 
-  struct Job { int64_t chatId; string url; string user; };
+  struct Job {
+    int64_t chatId;
+    string url;
+    string user;
+    int64_t userId;
+  };
   queue<Job> q;
   mutex m;
   condition_variable cv;
@@ -66,7 +71,7 @@ int main() {
 
   auto process = [&](const Job &job) {
     string url = job.url;
-    spdlog::info("got: {} from username: {}", url, job.user);
+    spdlog::info("got: {} from username: {} user_id: {}", url, job.user, job.userId);
 
     string qurl = shell_quote(url);
     string ofmt = "%(title)s.%(ext)s";
@@ -127,12 +132,14 @@ int main() {
     string basename = filesystem::path(filename).filename();
     string outPath = outDir + "/" + basename;
 
-    spdlog::info("Re-encoding to {} with x264 CRF 21, preset slow; libfdk_aac 128k", outPath);
+    spdlog::info(
+        "Re-encoding to {} with x264 CRF 23, preset slow; libfdk_aac 128k",
+        outPath);
 
     string qin = shell_quote(filename);
     string qout = shell_quote(outPath);
     string enc_cmd = "ffmpeg -y -i " + qin +
-                     " -c:v libx264 -crf 21 -preset slow "
+                     " -c:v libx264 -crf 23 -preset slow "
                      "-c:a libfdk_aac -b:a 128k -movflags +faststart " +
                      qout + " 2>&1";
     pipe = popen(enc_cmd.c_str(), "r");
@@ -153,14 +160,17 @@ int main() {
     try {
       filesystem::remove(filename);
     } catch (const exception &e) {
-      spdlog::error("could not remove original file {}: {}", filename, e.what());
+      spdlog::error("could not remove original file {}: {}", filename,
+                    e.what());
     }
 
     spdlog::info("Sending video");
-    bot.getApi().sendVideo(job.chatId, InputFile::fromFile(outPath, "video/mp4"));
+    bot.getApi().sendVideo(job.chatId,
+                           InputFile::fromFile(outPath, "video/mp4"));
 
     spdlog::debug("Video info:");
-    string video_info_cmd = "ffmpeg -hide_banner -i " + shell_quote(outPath) + " 2>&1";
+    string video_info_cmd =
+        "ffmpeg -hide_banner -i " + shell_quote(outPath) + " 2>&1";
     pipe = popen(video_info_cmd.c_str(), "r");
     if (!pipe) {
       spdlog::error("ffmpeg info popen failed");
@@ -174,16 +184,20 @@ int main() {
   };
 
   unsigned n = thread::hardware_concurrency();
-  if (n == 0) { n = 2; }
+  if (n == 0) {
+    n = 2;
+  }
   vector<thread> workers;
   for (unsigned i = 0; i < n; i++) {
-    workers.emplace_back([&](){
+    workers.emplace_back([&]() {
       while (true) {
         Job job;
         {
           unique_lock<mutex> lk(m);
-          cv.wait(lk, [&]{ return stopping || !q.empty(); });
-          if (stopping && q.empty()) { return; }
+          cv.wait(lk, [&] { return stopping || !q.empty(); });
+          if (stopping && q.empty()) {
+            return;
+          }
           job = q.front();
           q.pop();
         }
@@ -197,6 +211,7 @@ int main() {
     job.chatId = message->chat->id;
     job.url = message->text;
     job.user = message->from ? message->from->username : string();
+    job.userId = message->from->id;
     {
       lock_guard<mutex> lk(m);
       q.push(job);
@@ -223,8 +238,11 @@ int main() {
     stopping = true;
   }
   cv.notify_all();
-  for (auto &t : workers) { if (t.joinable()) { t.join(); } }
+  for (auto &t : workers) {
+    if (t.joinable()) {
+      t.join();
+    }
+  }
 
   return 0;
 }
-
