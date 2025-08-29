@@ -61,7 +61,7 @@ int main() {
 
   auto process = [&](const Job &job) {
     string url = job.url;
-    cout << "got: " << url << " from id: " << job.user << " username: " << job.user << " name: " << job.user << endl;
+    cout << "got: " << url << " from id: " << job.user << endl;
 
     string qurl = shell_quote(url);
     string ofmt = "%(title)s.%(ext)s";
