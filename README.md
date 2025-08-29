@@ -12,7 +12,6 @@ The name **dianyingbot** comes from the Chinese word **電影 (diànyǐng)** whi
 * Re-encodes using **x264** (CRF 21, preset slow) and **libfdk\_aac** (128 kbps).
 * Stores final files in `/tmp/tgbotencodes`.
 * Sends the encoded video back via Telegram API.
-* Caches `file_id`s so already-uploaded videos can be re-sent instantly.
 
 ---
 
@@ -49,7 +48,7 @@ make
 3. Run the bot:
 
    ```bash
-   ./echobot
+   ./dianying
    ```
 4. Send a YouTube link to your bot in Telegram.
    It will:
