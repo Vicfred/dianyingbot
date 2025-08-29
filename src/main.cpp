@@ -66,7 +66,7 @@ int main() {
 
   auto process = [&](const Job &job) {
     string url = job.url;
-    spdlog::info("got: {} from id: {}", url, job.user);
+    spdlog::info("got: {} from username: {}", url, job.user);
 
     string qurl = shell_quote(url);
     string ofmt = "%(title)s.%(ext)s";
