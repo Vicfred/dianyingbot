@@ -1,3 +1,4 @@
+#include <atomic>
 #include <csignal>
 #include <cstdio>
 #include <exception>
@@ -5,6 +6,10 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <queue>
 
 #include <tgbot/net/TgLongPoll.h>
 #include <tgbot/tgbot.h>
@@ -14,6 +19,13 @@
 
 using namespace std;
 using namespace TgBot;
+
+static atomic<bool> stopping{false};
+
+static void on_sigint(int) {
+  stopping.store(true);
+  _Exit(0);
+}
 
 static string trim_newline(const string &s) {
   string t = s;
@@ -41,12 +53,15 @@ int main() {
   cout << "Token: " << token << endl;
   Bot bot(token);
 
-  bot.getEvents().onAnyMessage([&bot](Message::Ptr message) {
-    string url = message->text;
-    cout << "got: " << url << " from id: " << message->from->username
-         << " username: " << message->from->username
-         << " name: " << message->from->firstName + message->from->lastName
-         << endl;
+  struct Job { int64_t chatId; string url; string user; };
+  queue<Job> q;
+  mutex m;
+  condition_variable cv;
+  bool stopping = false;
+
+  auto process = [&](const Job &job) {
+    string url = job.url;
+    cout << "got: " << url << " from id: " << job.user << " username: " << job.user << " name: " << job.user << endl;
 
     string qurl = shell_quote(url);
     string ofmt = "%(title)s.%(ext)s";
@@ -96,7 +111,6 @@ int main() {
       return;
     }
 
-    // Make sure /tmp/tgbotencodes exists
     string outDir = "/tmp/tgbotencodes";
     try {
       filesystem::create_directories(outDir);
@@ -108,8 +122,7 @@ int main() {
     string basename = filesystem::path(filename).filename();
     string outPath = outDir + "/" + basename;
 
-    cout << "Re-encoding to " << outPath
-         << " with x264 CRF 21, preset slow; libfdk_aac 128k" << endl;
+    cout << "Re-encoding to " << outPath << " with x264 CRF 21, preset slow; libfdk_aac 128k" << endl;
 
     string qin = shell_quote(filename);
     string qout = shell_quote(outPath);
@@ -135,17 +148,14 @@ int main() {
     try {
       filesystem::remove(filename);
     } catch (const exception &e) {
-      cerr << "warning: could not remove original file " << filename
-           << ": " << e.what() << endl;
+      cerr << "warning: could not remove original file " << filename << ": " << e.what() << endl;
     }
 
     cout << "Sending video" << endl;
-    bot.getApi().sendVideo(message->chat->id,
-                           InputFile::fromFile(outPath, "video/mp4"));
+    bot.getApi().sendVideo(job.chatId, InputFile::fromFile(outPath, "video/mp4"));
 
     cout << "Video info:" << endl;
-    string video_info_cmd =
-        "ffmpeg -hide_banner -i " + shell_quote(outPath) + " 2>&1";
+    string video_info_cmd = "ffmpeg -hide_banner -i " + shell_quote(outPath) + " 2>&1";
     pipe = popen(video_info_cmd.c_str(), "r");
     if (!pipe) {
       cerr << "ffmpeg info popen failed" << endl;
@@ -156,12 +166,40 @@ int main() {
     }
     ret = pclose(pipe);
     cout << "Exit code: " << ret << endl;
+  };
+
+  unsigned n = thread::hardware_concurrency();
+  if (n == 0) { n = 2; }
+  vector<thread> workers;
+  for (unsigned i = 0; i < n; i++) {
+    workers.emplace_back([&](){
+      while (true) {
+        Job job;
+        {
+          unique_lock<mutex> lk(m);
+          cv.wait(lk, [&]{ return stopping || !q.empty(); });
+          if (stopping && q.empty()) { return; }
+          job = q.front();
+          q.pop();
+        }
+        process(job);
+      }
+    });
+  }
+
+  bot.getEvents().onAnyMessage([&](Message::Ptr message) {
+    Job job;
+    job.chatId = message->chat->id;
+    job.url = message->text;
+    job.user = message->from ? message->from->username : string();
+    {
+      lock_guard<mutex> lk(m);
+      q.push(job);
+    }
+    cv.notify_one();
   });
 
-  signal(SIGINT, [](int s) {
-    cout << endl << "got SIGNINT " << s << endl;
-    exit(0);
-  });
+  signal(SIGINT, on_sigint);
 
   try {
     cout << "Bot username: " << bot.getApi().getMe()->username << endl;
@@ -173,5 +211,14 @@ int main() {
   } catch (exception &e) {
     cout << "error: " << e.what() << endl;
   }
+
+  {
+    lock_guard<mutex> lk(m);
+    stopping = true;
+  }
+  cv.notify_all();
+  for (auto &t : workers) { if (t.joinable()) { t.join(); } }
+
   return 0;
 }
+
