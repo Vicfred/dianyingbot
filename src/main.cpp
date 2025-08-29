@@ -159,7 +159,7 @@ int main() {
   });
 
   signal(SIGINT, [](int s) {
-    cout << endl << "got SIGNINT" << endl;
+    cout << endl << "got SIGNINT " << s << endl;
     exit(0);
   });
 
