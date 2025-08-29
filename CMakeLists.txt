@@ -10,6 +10,7 @@ find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(Boost COMPONENTS system REQUIRED)
 find_package(CURL REQUIRED)
+find_package(spdlog REQUIRED)
 
 find_library(TGBOT_LIBRARY
   NAMES TgBot libTgBot
@@ -29,4 +30,5 @@ target_link_libraries(dianying PRIVATE
   OpenSSL::SSL OpenSSL::Crypto
   CURL::libcurl
   Threads::Threads
+  spdlog::spdlog
 )
