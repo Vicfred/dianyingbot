@@ -1,21 +1,22 @@
-# 🎬 dianyingbot (電影)
+# dianyingbot (電影)
 
 A simple Telegram bot that downloads videos via [youtube-dl](https://github.com/ytdl-org/youtube-dl) (or [yt-dlp](https://github.com/yt-dlp/yt-dlp)) and sends them back to you on Telegram.
 The name **dianyingbot** comes from the Chinese word **電影 (diànyǐng)** which means *movie*.
 
 ---
 
-## ✨ Features
+## Features
 
 * Accepts any YouTube (or other supported site) link in chat.
-* Downloads the video with `youtube-dl`/`yt-dlp`.
+* Supports downloads from **Instagram Reels**, **TikTok**, and **小红书 (Xiaohongshu/RED)** in addition to YouTube.
 * Re-encodes using **x264** (CRF 21, preset slow) and **libfdk\_aac** (128 kbps).
 * Stores final files in `/tmp/tgbotencodes`.
 * Sends the encoded video back via Telegram API.
+* Multithreaded worker pool: multiple downloads and encodes can be processed in parallel.
 
 ---
 
-## 📦 Requirements
+## Requirements
 
 * Linux (tested on Gentoo, should work anywhere).
 * `ffmpeg` built with `libfdk_aac`.
@@ -26,7 +27,7 @@ The name **dianyingbot** comes from the Chinese word **電影 (diànyǐng)** whi
 
 ---
 
-## 🔧 Build
+## Build
 
 ```bash
 mkdir build
@@ -37,7 +38,7 @@ make
 
 ---
 
-## 🚀 Usage
+## Usage
 
 1. Create a bot via [BotFather](https://core.telegram.org/bots#botfather) and copy your token.
 2. Export the token:
@@ -50,8 +51,7 @@ make
    ```bash
    ./dianying
    ```
-4. Send a YouTube link to your bot in Telegram.
-   It will:
+4. Send a YouTube, Instagram Reels, TikTok, or 小红书 link to your bot in Telegram. It will:
 
    * download,
    * re-encode,
@@ -60,7 +60,7 @@ make
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 src/main.cpp        # bot source
@@ -70,7 +70,7 @@ CMakeLists.txt      # build setup
 
 ---
 
-## ⚠️ Notes
+## Notes
 
 * Telegram bots have a file size limit (currently **50 MB per file** via Bot API).
 * Videos larger than this cannot be sent.
@@ -78,11 +78,11 @@ CMakeLists.txt      # build setup
 
 ---
 
-## 📝 License
+## License
 
-MIT
+BSD 3-Clause License
 
 ---
 
-💡 *dianyingbot* — turning your favorite **電影** into Telegram-friendly videos!
+*dianyingbot* — turning your favorite 電影, Reels, TikToks, and 小红书 videos into Telegram-friendly formats!
 
