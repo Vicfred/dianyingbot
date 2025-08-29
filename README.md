@@ -8,11 +8,12 @@ The name **dianyingbot** comes from the Chinese word **電影 (diànyǐng)** whi
 ## Features
 
 * Accepts any YouTube (or other supported site) link in chat.
-* Supports downloads from **Instagram Reels**, **TikTok**, and **小红书 (Xiaohongshu/RED)** in addition to YouTube.
+* Supports downloads from **Instagram Reels**, **TikTok**, and **小红书 (Xiaohongshu)** in addition to YouTube.
 * Re-encodes using **x264** (CRF 21, preset slow) and **libfdk\_aac** (128 kbps).
 * Stores final files in `/tmp/tgbotencodes`.
 * Sends the encoded video back via Telegram API.
 * Multithreaded worker pool: multiple downloads and encodes can be processed in parallel.
+* Logging with [spdlog](https://github.com/gabime/spdlog) (debug, info, error levels).
 
 ---
 
@@ -23,6 +24,7 @@ The name **dianyingbot** comes from the Chinese word **電影 (diànyǐng)** whi
 * `youtube-dl` (or `yt-dlp` recommended).
 * C++17 compiler.
 * [TgBot C++ Library](https://github.com/reo7sp/tgbot-cpp).
+* [spdlog](https://github.com/gabime/spdlog) (header-only).
 * CMake ≥ 3.10.
 
 ---
