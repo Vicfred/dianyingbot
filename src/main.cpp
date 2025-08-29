@@ -71,7 +71,8 @@ int main() {
 
   auto process = [&](const Job &job) {
     string url = job.url;
-    spdlog::info("got: {} from username: {} user_id: {}", url, job.user, job.userId);
+    spdlog::info("got: {} from username: {} user_id: {}", url, job.user,
+                 job.userId);
 
     string qurl = shell_quote(url);
     string ofmt = "%(title)s.%(ext)s";
@@ -165,8 +166,12 @@ int main() {
     }
 
     spdlog::info("Sending video");
-    bot.getApi().sendVideo(job.chatId,
-                           InputFile::fromFile(outPath, "video/mp4"));
+    try {
+      bot.getApi().sendVideo(job.chatId,
+                             InputFile::fromFile(outPath, "video/mp4"));
+    } catch (exception &e) {
+      spdlog::error("Sending video failed, error: {}", e.what());
+    }
 
     spdlog::debug("Video info:");
     string video_info_cmd =
