@@ -168,7 +168,6 @@ int main() {
     bot.getApi().deleteWebhook();
     TgLongPoll longPoll(bot);
     while (true) {
-      cout << "Long poll started" << endl;
       longPoll.start();
     }
   } catch (exception &e) {
