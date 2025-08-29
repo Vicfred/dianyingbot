@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.31.5)
-project(echobot)
+project(dianying)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -21,9 +21,9 @@ find_path(TGBOT_INCLUDE_DIR
   PATHS /usr/local/include /usr/include
 )
 
-add_executable(echobot src/main.cpp)
-target_include_directories(echobot PRIVATE ${TGBOT_INCLUDE_DIR})
-target_link_libraries(echobot PRIVATE
+add_executable(dianying src/main.cpp)
+target_include_directories(dianying PRIVATE ${TGBOT_INCLUDE_DIR})
+target_link_libraries(dianying PRIVATE
   ${TGBOT_LIBRARY}
   Boost::system
   OpenSSL::SSL OpenSSL::Crypto
