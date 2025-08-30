@@ -2,25 +2,22 @@
 #include <condition_variable>
 #include <csignal>
 #include <cstdio>
+#include <cstdlib>
 #include <exception>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <mutex>
 #include <queue>
 #include <string>
+#include <tgbot/Bot.h>
 #include <thread>
 
-#include <tgbot/net/TgLongPoll.h>
-#include <tgbot/tgbot.h>
-#include <tgbot/tools/StringTools.h>
-#include <tgbot/types/InputFile.h>
-#include <tgbot/types/Message.h>
-
 #include "spdlog/spdlog.h"
+#include <tgbot/tgbot.h>
 
 using namespace std;
-using namespace TgBot;
 
 static atomic<bool> stopping{false};
 
@@ -54,9 +51,17 @@ int main() {
   spdlog::set_level(spdlog::level::info);
   spdlog::set_pattern("[%Y-%m-%d %H:%M:%S] [%^%l%$] %v");
 
-  string token(getenv("TOKEN"));
-  spdlog::info("Token: {}", token);
-  Bot bot(token);
+  string token(getenv("DIANYINGTOKEN"));
+  spdlog::debug("Token: {}", token);
+  unique_ptr<TgBot::Bot> bot = make_unique<TgBot::Bot>(token);
+  //bot->getApi().logOut();
+
+  TgBot::CurlHttpClient curlHttpClient;
+  string local_api_url = getenv("BOT_API_URL");
+  if (getenv("BOT_API_URL") != NULL) {
+    bot = make_unique<TgBot::Bot>(token, curlHttpClient, local_api_url);
+    spdlog::info("Using local api server {}", getenv("BOT_API_URL"));
+  }
 
   struct Job {
     int64_t chatId;
@@ -134,14 +139,14 @@ int main() {
     string outPath = outDir + "/" + basename;
 
     spdlog::info(
-        "Re-encoding to {} with x264 CRF 23, preset slow; libfdk_aac 128k",
+        "Re-encoding to {} with x264 CRF 30, preset fast; libfdk_aac 96k",
         outPath);
 
     string qin = shell_quote(filename);
     string qout = shell_quote(outPath);
     string enc_cmd = "ffmpeg -y -i " + qin +
-                     " -c:v libx264 -crf 23 -preset slow "
-                     "-c:a libfdk_aac -b:a 128k -movflags +faststart " +
+                     " -c:v libx264 -crf 30 -preset fast "
+                     "-c:a libfdk_aac -b:a 96k -movflags +faststart " +
                      qout + " 2>&1";
     pipe = popen(enc_cmd.c_str(), "r");
     if (!pipe) {
@@ -167,8 +172,8 @@ int main() {
 
     spdlog::info("Sending video");
     try {
-      bot.getApi().sendVideo(job.chatId,
-                             InputFile::fromFile(outPath, "video/mp4"));
+      bot->getApi().sendVideo(job.chatId,
+                              TgBot::InputFile::fromFile(outPath, "video/mp4"));
     } catch (exception &e) {
       spdlog::error("Sending video failed, error: {}", e.what());
     }
@@ -211,7 +216,7 @@ int main() {
     });
   }
 
-  bot.getEvents().onAnyMessage([&](Message::Ptr message) {
+  bot->getEvents().onAnyMessage([&](TgBot::Message::Ptr message) {
     Job job;
     job.chatId = message->chat->id;
     job.url = message->text;
@@ -228,9 +233,9 @@ int main() {
   signal(SIGINT, on_sigint);
 
   try {
-    spdlog::info("Bot username: {}", bot.getApi().getMe()->username);
-    bot.getApi().deleteWebhook();
-    TgLongPoll longPoll(bot);
+    spdlog::info("Bot username: {}", bot->getApi().getMe()->username);
+    bot->getApi().deleteWebhook();
+    TgBot::TgLongPoll longPoll(*bot);
     while (true) {
       longPoll.start();
     }

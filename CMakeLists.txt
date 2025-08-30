@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.31.5)
+cmake_minimum_required(VERSION 3.10.2)
 project(dianying)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -14,13 +14,21 @@ find_package(spdlog REQUIRED)
 
 find_library(TGBOT_LIBRARY
   NAMES TgBot libTgBot
-  PATHS /usr/local/lib /usr/lib /usr/lib64
+  PATHS /usr/local/lib /usr/local/lib64 /usr/lib /usr/lib64
 )
 
 find_path(TGBOT_INCLUDE_DIR
   NAMES tgbot/tgbot.h
   PATHS /usr/local/include /usr/include
 )
+
+include_directories(/usr/local/include ${OPENSSL_INCLUDE_DIR} ${Boost_INCLUDE_DIR})
+
+# maybe we dont need this?
+if (CURL_FOUND)
+    include_directories(${CURL_INCLUDE_DIRS})
+    add_definitions(-DHAVE_CURL)
+endif()
 
 add_executable(dianying src/main.cpp)
 target_include_directories(dianying PRIVATE ${TGBOT_INCLUDE_DIR})
