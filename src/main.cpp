@@ -103,9 +103,9 @@ int main() {
     string url = job.url;
     spdlog::info(
         "got: {} from username: {} user_id: {}", url,
-        fmt::styled(job.user, fmt::fg(fmt::color::blue) | fmt::emphasis::bold),
+        fmt::styled(job.user, fmt::fg(fmt::color::deep_pink) | fmt::emphasis::bold),
         fmt::styled(job.userId,
-                    fmt::fg(fmt::color::blue) | fmt::emphasis::bold));
+                    fmt::fg(fmt::color::deep_pink) | fmt::emphasis::bold));
 
     string qurl = shell_quote(url);
     string ofmt = "%(title)s.%(ext)s";
