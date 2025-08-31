@@ -12,12 +12,36 @@
 #include <queue>
 #include <string>
 #include <tgbot/Bot.h>
+#include <tgbot/types/LinkPreviewOptions.h>
 #include <thread>
 
 #include "spdlog/spdlog.h"
 #include <tgbot/tgbot.h>
 
 using namespace std;
+
+const string instructionsHtml =
+    R"( <b>How to use this bot (no commands needed)</b>
+
+- Just send me a video link. That's it.
+- Supported: YouTube, Instagram, TikTok, Xiaohongshu.
+- I'll fetch the video and send it back to you.
+- No /start or other commands are required.
+
+<b>Two easy ways</b>
+1) Copy the link -> open this chat -> paste the link -> send.
+2) From the app's Share menu -> choose Telegram -> pick this bot.
+
+<b>Examples of links</b>
+- https://youtu.be/VIDEO_ID
+- https://www.instagram.com/reel/XXXXX
+- https://www.tiktok.com/@user/video/NNNNN
+- https://www.xiaohongshu.com/explore/POST_ID
+
+<b>Notes</b>
+- Public posts only; private/age-restricted/protected links will not work.
+- Very long videos or region-locked posts may fail.
+- Please respect creators' rights and the Terms of Service of each platform.)";
 
 static atomic<bool> stopping{false};
 
@@ -54,7 +78,7 @@ int main() {
   string token(getenv("DIANYINGTOKEN"));
   spdlog::debug("Token: {}", token);
   unique_ptr<TgBot::Bot> bot = make_unique<TgBot::Bot>(token);
-  //bot->getApi().logOut();
+  // bot->getApi().logOut();
 
   TgBot::CurlHttpClient curlHttpClient;
   string local_api_url = getenv("BOT_API_URL");
@@ -106,6 +130,11 @@ int main() {
     spdlog::debug("get-filename exit code: {}", ret);
     if (filename.empty()) {
       spdlog::error("empty filename");
+      TgBot::LinkPreviewOptions::Ptr opts =
+          make_shared<TgBot::LinkPreviewOptions>();
+      opts->isDisabled = true;
+      bot->getApi().sendMessage(job.chatId, instructionsHtml, opts, nullptr,
+                                nullptr, "HTML");
       return;
     }
 
