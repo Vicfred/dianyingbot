@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <exception>
 #include <filesystem>
+#include <fmt/color.h>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -100,8 +101,11 @@ int main() {
 
   auto process = [&](const Job &job) {
     string url = job.url;
-    spdlog::info("got: {} from username: {} user_id: {}", url, job.user,
-                 job.userId);
+    spdlog::info(
+        "got: {} from username: {} user_id: {}", url,
+        fmt::styled(job.user, fmt::fg(fmt::color::blue) | fmt::emphasis::bold),
+        fmt::styled(job.userId,
+                    fmt::fg(fmt::color::blue) | fmt::emphasis::bold));
 
     string qurl = shell_quote(url);
     string ofmt = "%(title)s.%(ext)s";
