@@ -107,6 +107,7 @@ int main() {
                                            fmt::emphasis::bold),
                  fmt::styled(job.userId, fmt::fg(fmt::color::deep_pink) |
                                              fmt::emphasis::bold));
+    bot->getApi().sendMessage(job.chatId, "I got your request, working on it!");
 
     string qurl = shell_quote(url);
     string ofmt = "%(title)s.%(ext)s";
@@ -146,6 +147,7 @@ int main() {
     spdlog::info("Downloading the video");
     pipe = popen(download_cmd.c_str(), "r");
     if (!pipe) {
+      bot->getApi().sendMessage(job.chatId, "I failed to download your video.");
       spdlog::error("download popen failed");
       return;
     }
@@ -185,6 +187,7 @@ int main() {
     pipe = popen(enc_cmd.c_str(), "r");
     if (!pipe) {
       spdlog::error("encode popen failed");
+      bot->getApi().sendMessage(job.chatId, "Video encoding failed.");
       return;
     }
     while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
@@ -194,6 +197,7 @@ int main() {
     spdlog::debug("ffmpeg exit code: {}", ret);
     if (ret != 0) {
       spdlog::error("encoding failed");
+      bot->getApi().sendMessage(job.chatId, "Video encoding failed.");
       return;
     }
 
@@ -209,6 +213,7 @@ int main() {
       bot->getApi().sendVideo(job.chatId,
                               TgBot::InputFile::fromFile(outPath, "video/mp4"));
     } catch (exception &e) {
+      bot->getApi().sendMessage(job.chatId, "Failed to send the video.");
       spdlog::error("Sending video failed, error: {}", e.what());
     }
 
