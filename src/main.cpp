@@ -79,7 +79,6 @@ int main() {
   spdlog::set_pattern("[%Y-%m-%d %H:%M:%S] [%^%l%$] %v");
 
   string token(getenv("DIANYINGTOKEN"));
-  spdlog::debug("Token: {}", token);
   unique_ptr<TgBot::Bot> bot = make_unique<TgBot::Bot>(token);
   // bot->getApi().logOut();
 
