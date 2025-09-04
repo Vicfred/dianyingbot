@@ -1,6 +1,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <csignal>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
@@ -11,6 +12,7 @@
 #include <memory>
 #include <mutex>
 #include <queue>
+#include <set>
 #include <string>
 #include <tgbot/Bot.h>
 #include <tgbot/types/LinkPreviewOptions.h>
@@ -101,11 +103,11 @@ int main() {
 
   auto process = [&](const Job &job) {
     string url = job.url;
-    spdlog::info(
-        "got: {} from username: {} user_id: {}", url,
-        fmt::styled(job.user, fmt::fg(fmt::color::deep_pink) | fmt::emphasis::bold),
-        fmt::styled(job.userId,
-                    fmt::fg(fmt::color::deep_pink) | fmt::emphasis::bold));
+    spdlog::info("got: {} from username: {} user_id: {}", url,
+                 fmt::styled(job.user, fmt::fg(fmt::color::deep_pink) |
+                                           fmt::emphasis::bold),
+                 fmt::styled(job.userId, fmt::fg(fmt::color::deep_pink) |
+                                             fmt::emphasis::bold));
 
     string qurl = shell_quote(url);
     string ofmt = "%(title)s.%(ext)s";
@@ -249,7 +251,13 @@ int main() {
     });
   }
 
+  const set<int64_t> allowed_users = {3376040, 265288934, 1216729714,
+                                      6540848155, 1844076108};
+
   bot->getEvents().onAnyMessage([&](TgBot::Message::Ptr message) {
+    if (allowed_users.count(message->from->id) == 0) {
+      return;
+    }
     Job job;
     job.chatId = message->chat->id;
     job.url = message->text;
