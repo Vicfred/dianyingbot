@@ -156,6 +156,7 @@ int main() {
     }
     ret = pclose(pipe);
     spdlog::debug("download exit code: {}", ret);
+    bot->getApi().sendMessage(job.chatId, "I got your video, I will re-encode it for maximum compatibility~");
 
     ifstream test(filename);
     if (!test) {
@@ -209,6 +210,7 @@ int main() {
     }
 
     spdlog::info("Sending video");
+    bot->getApi().sendMessage(job.chatId, "I'm done with the encoding, I will send it now, you should get it soon~");
     try {
       bot->getApi().sendVideo(job.chatId,
                               TgBot::InputFile::fromFile(outPath, "video/mp4"));
