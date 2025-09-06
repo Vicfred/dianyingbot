@@ -1,4 +1,5 @@
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <csignal>
 #include <cstdint>
@@ -102,12 +103,6 @@ int main() {
 
   auto process = [&](const Job &job) {
     string url = job.url;
-    spdlog::info("got: {} from username: {} user_id: {}", url,
-                 fmt::styled(job.user, fmt::fg(fmt::color::deep_pink) |
-                                           fmt::emphasis::bold),
-                 fmt::styled(job.userId, fmt::fg(fmt::color::deep_pink) |
-                                             fmt::emphasis::bold));
-    bot->getApi().sendMessage(job.chatId, "I got your request, working on it!");
 
     string qurl = shell_quote(url);
     string ofmt = "%(title)s.%(ext)s";
@@ -143,6 +138,8 @@ int main() {
                                 nullptr, "HTML");
       return;
     }
+    bot->getApi().sendMessage(job.chatId, "I got your request, working on it!");
+    this_thread::sleep_for(chrono::seconds(5));
 
     spdlog::info("Downloading the video");
     pipe = popen(download_cmd.c_str(), "r");
@@ -156,7 +153,9 @@ int main() {
     }
     ret = pclose(pipe);
     spdlog::debug("download exit code: {}", ret);
-    bot->getApi().sendMessage(job.chatId, "I got your video, I will re-encode it for maximum compatibility~");
+    bot->getApi().sendMessage(
+        job.chatId,
+        "I got your video, I will re-encode it for maximum compatibility~");
 
     ifstream test(filename);
     if (!test) {
@@ -176,13 +175,13 @@ int main() {
     string outPath = outDir + "/" + basename;
 
     spdlog::info(
-        "Re-encoding to {} with x264 CRF 30, preset fast; libfdk_aac 96k",
+        "Re-encoding to {} with x265 CRF 28, preset slow; libfdk_aac 96k",
         outPath);
 
     string qin = shell_quote(filename);
     string qout = shell_quote(outPath);
     string enc_cmd = "ffmpeg -y -i " + qin +
-                     " -c:v libx264 -crf 30 -preset fast "
+                     " -c:v libx265 -crf 28 -preset slow "
                      "-c:a libfdk_aac -b:a 96k -movflags +faststart " +
                      qout + " 2>&1";
     pipe = popen(enc_cmd.c_str(), "r");
@@ -210,7 +209,9 @@ int main() {
     }
 
     spdlog::info("Sending video");
-    bot->getApi().sendMessage(job.chatId, "I'm done with the encoding, I will send it now, you should get it soon~");
+    bot->getApi().sendMessage(job.chatId,
+                              "I'm done with the encoding, I will send it now, "
+                              "you should get it soon~");
     try {
       bot->getApi().sendVideo(job.chatId,
                               TgBot::InputFile::fromFile(outPath, "video/mp4"));
@@ -261,14 +262,19 @@ int main() {
                                       6540848155, 1844076108};
 
   bot->getEvents().onAnyMessage([&](TgBot::Message::Ptr message) {
-    if (allowed_users.count(message->from->id) == 0) {
-      return;
-    }
     Job job;
     job.chatId = message->chat->id;
     job.url = message->text;
     job.user = message->from ? message->from->username : string();
     job.userId = message->from->id;
+    spdlog::info("got: {} from username: {} user_id: {}", job.url,
+                 fmt::styled(job.user, fmt::fg(fmt::color::deep_pink) |
+                                           fmt::emphasis::bold),
+                 fmt::styled(job.userId, fmt::fg(fmt::color::deep_pink) |
+                                             fmt::emphasis::bold));
+    if (allowed_users.count(message->from->id) == 0) {
+      return;
+    }
     {
       lock_guard<mutex> lk(m);
       q.push(job);

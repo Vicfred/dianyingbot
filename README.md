@@ -9,7 +9,7 @@ The name **dianyingbot** comes from the Chinese word **電影 (diànyǐng)** whi
 
 * Accepts any YouTube (or other supported site) link in chat.
 * Supports downloads from **Instagram Reels**, **TikTok**, and **小红书 (Xiaohongshu)** in addition to YouTube.
-* Re-encodes using **x264** (CRF 30, preset **fast**) and **libfdk\_aac** (96 kbps).
+* Re-encodes using **x265** (CRF 28, preset **slow**) and **libfdk\_aac** (96 kbps).
 * Stores final files in `/tmp/tgbotencodes`.
 * Sends the encoded video back via Telegram API.
 * Multithreaded worker pool: multiple downloads and encodes can be processed in parallel.
