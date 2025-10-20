@@ -18,6 +18,9 @@
 #include <tgbot/Bot.h>
 #include <tgbot/types/LinkPreviewOptions.h>
 #include <thread>
+#include <curl/curl.h>
+#include <tgbot/net/HttpClient.h>
+#include <tgbot/net/Url.h>
 
 #include "spdlog/spdlog.h"
 #include <tgbot/tgbot.h>
@@ -83,7 +86,11 @@ int main() {
   unique_ptr<TgBot::Bot> bot = make_unique<TgBot::Bot>(token);
   // bot->getApi().logOut();
 
+  set<pair<int64_t, int64_t>> seen;
+  mutex seenMu;
+
   TgBot::CurlHttpClient curlHttpClient;
+  curlHttpClient._timeout = 600;
   string local_api_url = getenv("BOT_API_URL");
   if (getenv("BOT_API_URL") != NULL) {
     bot = make_unique<TgBot::Bot>(token, curlHttpClient, local_api_url);
@@ -262,6 +269,31 @@ int main() {
                                       6540848155, 1844076108};
 
   bot->getEvents().onAnyMessage([&](TgBot::Message::Ptr message) {
+    if (!message || !message->chat || !message->from) {
+      return;
+    }
+    if (allowed_users.count(message->from->id) == 0) {
+      return;
+    }
+    if (message->text.empty()) {
+      return;
+    }
+    const string &t = message->text;
+    if (!(t.rfind("http://", 0) == 0 || t.rfind("https://", 0) == 0)) {
+      return;
+    }
+    pair<int64_t, int64_t> key = {message->chat->id, message->messageId};
+    {
+      lock_guard<mutex> lk(seenMu);
+      if (seen.count(key)) {
+        spdlog::info("dup ignored chat {} msg {}", key.first, key.second);
+        return;
+      }
+      seen.insert(key);
+      if (seen.size() > 2000) {
+        seen.clear();
+      }
+    }
     Job job;
     job.chatId = message->chat->id;
     job.url = message->text;
@@ -272,9 +304,6 @@ int main() {
                                            fmt::emphasis::bold),
                  fmt::styled(job.userId, fmt::fg(fmt::color::deep_pink) |
                                              fmt::emphasis::bold));
-    if (allowed_users.count(message->from->id) == 0) {
-      return;
-    }
     {
       lock_guard<mutex> lk(m);
       q.push(job);
@@ -288,7 +317,7 @@ int main() {
   try {
     spdlog::info("Bot username: {}", bot->getApi().getMe()->username);
     bot->getApi().deleteWebhook();
-    TgBot::TgLongPoll longPoll(*bot);
+    TgBot::TgLongPoll longPoll(*bot,100,600);
     while (true) {
       longPoll.start();
     }
