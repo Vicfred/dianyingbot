@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <curl/curl.h>
 #include <exception>
 #include <filesystem>
 #include <fmt/color.h>
@@ -16,11 +17,10 @@
 #include <set>
 #include <string>
 #include <tgbot/Bot.h>
-#include <tgbot/types/LinkPreviewOptions.h>
-#include <thread>
-#include <curl/curl.h>
 #include <tgbot/net/HttpClient.h>
 #include <tgbot/net/Url.h>
+#include <tgbot/types/LinkPreviewOptions.h>
+#include <thread>
 
 #include "spdlog/spdlog.h"
 #include <tgbot/tgbot.h>
@@ -114,9 +114,12 @@ int main() {
     string qurl = shell_quote(url);
     string ofmt = "%(title)s.%(ext)s";
     string flags =
-        "-f \"bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best\" "
+        "-f "
+        "\"bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/"
+        "best[height<=720][ext=mp4]/best[height<=720]/best\" "
         "--merge-output-format mp4 --no-playlist --no-progress -o \"" +
         ofmt + "\" ";
+    spdlog::debug("{}", flags);
 
     string getname_cmd = "youtube-dl --get-filename " + flags + qurl;
     string download_cmd = "youtube-dl " + flags + qurl;
@@ -182,13 +185,13 @@ int main() {
     string outPath = outDir + "/" + basename;
 
     spdlog::info(
-        "Re-encoding to {} with x265 CRF 28, preset slow; libfdk_aac 96k",
+        "Re-encoding to {} with x265 CRF 28, preset fast; libfdk_aac 96k",
         outPath);
 
     string qin = shell_quote(filename);
     string qout = shell_quote(outPath);
     string enc_cmd = "ffmpeg -y -i " + qin +
-                     " -c:v libx265 -crf 28 -preset slow "
+                     " -c:v libx265 -crf 28 -preset fast "
                      "-c:a libfdk_aac -b:a 96k -movflags +faststart " +
                      qout + " 2>&1";
     pipe = popen(enc_cmd.c_str(), "r");
@@ -317,7 +320,7 @@ int main() {
   try {
     spdlog::info("Bot username: {}", bot->getApi().getMe()->username);
     bot->getApi().deleteWebhook();
-    TgBot::TgLongPoll longPoll(*bot,100,600);
+    TgBot::TgLongPoll longPoll(*bot, 100, 600);
     while (true) {
       longPoll.start();
     }
