@@ -148,6 +148,7 @@ int main() {
                                 nullptr, "HTML");
       return;
     }
+
     bot->getApi().sendMessage(job.chatId, "I got your request, working on it!");
     this_thread::sleep_for(chrono::seconds(5));
 
@@ -163,9 +164,6 @@ int main() {
     }
     ret = pclose(pipe);
     spdlog::debug("download exit code: {}", ret);
-    bot->getApi().sendMessage(
-        job.chatId,
-        "I got your video, I will re-encode it for maximum compatibility~");
 
     ifstream test(filename);
     if (!test) {
@@ -173,58 +171,12 @@ int main() {
       return;
     }
 
-    string outDir = "/tmp/tgbotencodes";
-    try {
-      filesystem::create_directories(outDir);
-    } catch (const exception &e) {
-      spdlog::error("cannot create output dir: {}", e.what());
-      return;
-    }
-
     string basename = filesystem::path(filename).filename();
-    string outPath = outDir + "/" + basename;
-
-    spdlog::info(
-        "Re-encoding to {} with x265 CRF 28, preset fast; libfdk_aac 96k",
-        outPath);
-
-    string qin = shell_quote(filename);
-    string qout = shell_quote(outPath);
-    string enc_cmd = "ffmpeg -y -i " + qin +
-                     " -c:v libx265 -crf 28 -preset fast "
-                     "-c:a libfdk_aac -b:a 96k -movflags +faststart " +
-                     qout + " 2>&1";
-    pipe = popen(enc_cmd.c_str(), "r");
-    if (!pipe) {
-      spdlog::error("encode popen failed");
-      bot->getApi().sendMessage(job.chatId, "Video encoding failed.");
-      return;
-    }
-    while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-      spdlog::debug("ffmpeg: {}", string(buffer));
-    }
-    ret = pclose(pipe);
-    spdlog::debug("ffmpeg exit code: {}", ret);
-    if (ret != 0) {
-      spdlog::error("encoding failed");
-      bot->getApi().sendMessage(job.chatId, "Video encoding failed.");
-      return;
-    }
-
-    try {
-      filesystem::remove(filename);
-    } catch (const exception &e) {
-      spdlog::error("could not remove original file {}: {}", filename,
-                    e.what());
-    }
 
     spdlog::info("Sending video");
-    bot->getApi().sendMessage(job.chatId,
-                              "I'm done with the encoding, I will send it now, "
-                              "you should get it soon~");
     try {
       bot->getApi().sendVideo(job.chatId,
-                              TgBot::InputFile::fromFile(outPath, "video/mp4"));
+                              TgBot::InputFile::fromFile(basename, "video/mp4"));
     } catch (exception &e) {
       bot->getApi().sendMessage(job.chatId, "Failed to send the video.");
       spdlog::error("Sending video failed, error: {}", e.what());
@@ -232,7 +184,7 @@ int main() {
 
     spdlog::debug("Video info:");
     string video_info_cmd =
-        "ffmpeg -hide_banner -i " + shell_quote(outPath) + " 2>&1";
+        "ffmpeg -hide_banner -i " + shell_quote(basename) + " 2>&1";
     pipe = popen(video_info_cmd.c_str(), "r");
     if (!pipe) {
       spdlog::error("ffmpeg info popen failed");
@@ -243,6 +195,13 @@ int main() {
     }
     ret = pclose(pipe);
     spdlog::debug("info exit code: {}", ret);
+
+    try {
+      filesystem::remove(filename);
+    } catch (const exception &e) {
+      spdlog::error("could not remove original file {}: {}", filename,
+                    e.what());
+    }
   };
 
   unsigned n = thread::hardware_concurrency();
