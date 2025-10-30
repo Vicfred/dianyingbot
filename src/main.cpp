@@ -121,8 +121,8 @@ int main() {
         ofmt + "\" ";
     spdlog::debug("{}", flags);
 
-    string getname_cmd = "youtube-dl --get-filename " + flags + qurl;
-    string download_cmd = "youtube-dl " + flags + qurl;
+    string getname_cmd = "yt-dlp --get-filename " + flags + qurl;
+    string download_cmd = "yt-dlp " + flags + qurl;
 
     spdlog::info("Getting the filename");
     FILE *pipe = popen(getname_cmd.c_str(), "r");

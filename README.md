@@ -1,6 +1,6 @@
 # dianyingbot (電影)
 
-A simple Telegram bot that downloads videos via [youtube-dl](https://github.com/ytdl-org/youtube-dl) (or [yt-dlp](https://github.com/yt-dlp/yt-dlp)) and sends them back to you on Telegram.
+A simple Telegram bot that downloads videos via [yt-dlp](https://github.com/yt-dlp/yt-dlp) and sends them back to you on Telegram.
 The name **dianyingbot** comes from the Chinese word **電影 (diànyǐng)** which means *movie*.
 
 ---
@@ -22,7 +22,7 @@ The name **dianyingbot** comes from the Chinese word **電影 (diànyǐng)** whi
 
 * Linux (tested on Gentoo; should work on other distros/BSDs with compatible deps).
 * `ffmpeg` built with `libfdk_aac`.
-* `youtube-dl` **or** `yt-dlp` (recommended).
+* `yt-dlp`.
 * C++17 compiler.
 * [TgBot C++ Library](https://github.com/reo7sp/tgbot-cpp).
 * [spdlog](https://github.com/gabime/spdlog) (header-only).
