@@ -14,6 +14,7 @@
 #include <memory>
 #include <mutex>
 #include <queue>
+#include <random>
 #include <set>
 #include <string>
 #include <tgbot/Bot.h>
@@ -78,6 +79,21 @@ static string shell_quote(const string &s) {
   return out;
 }
 
+static string random_hex(size_t bytes) {
+  static const char *hex = "0123456789abcdef";
+  random_device rd;
+  uniform_int_distribution<int64_t> dist(0, 255);
+  string s;
+  s.reserve(bytes * 2);
+  for (size_t i = 0; i < bytes; i++) {
+    int64_t v = dist(rd);
+    s.push_back(hex[(v >> 4) & 15]);
+    s.push_back(hex[v & 15]);
+  }
+  return s;
+}
+
+
 int main() {
   spdlog::set_level(spdlog::level::info);
   spdlog::set_pattern("[%Y-%m-%d %H:%M:%S] [%^%l%$] %v");
@@ -112,48 +128,24 @@ int main() {
     string url = job.url;
 
     string qurl = shell_quote(url);
-    string ofmt = "%(title)s.%(ext)s";
+    string outname = random_hex(16) + ".mp4";
     string flags =
         "-f "
         "\"bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/"
         "best[height<=720][ext=mp4]/best[height<=720]/best\" "
-        "--merge-output-format mp4 --no-playlist --no-progress -o \"" +
-        ofmt + "\" ";
+        "--merge-output-format mp4 --no-playlist --no-progress -o \"" + outname + "\" ";
     spdlog::debug("{}", flags);
 
-    string getname_cmd = "yt-dlp --get-filename " + flags + qurl;
     string download_cmd = "yt-dlp " + flags + qurl;
 
-    spdlog::info("Getting the filename");
-    FILE *pipe = popen(getname_cmd.c_str(), "r");
-    if (!pipe) {
-      spdlog::error("filename popen failed");
-      return;
-    }
-
     char buffer[4096];
-    string filename;
-    if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-      filename = trim_newline(buffer);
-      spdlog::info("filename: {}", filename);
-    }
-    int ret = pclose(pipe);
-    spdlog::debug("get-filename exit code: {}", ret);
-    if (filename.empty()) {
-      spdlog::error("empty filename");
-      TgBot::LinkPreviewOptions::Ptr opts =
-          make_shared<TgBot::LinkPreviewOptions>();
-      opts->isDisabled = true;
-      bot->getApi().sendMessage(job.chatId, instructionsHtml, opts, nullptr,
-                                nullptr, "HTML");
-      return;
-    }
+    string filename = outname;
 
     bot->getApi().sendMessage(job.chatId, "I got your request, working on it!");
     this_thread::sleep_for(chrono::seconds(5));
 
     spdlog::info("Downloading the video");
-    pipe = popen(download_cmd.c_str(), "r");
+    FILE *pipe = popen(download_cmd.c_str(), "r");
     if (!pipe) {
       bot->getApi().sendMessage(job.chatId, "I failed to download your video.");
       spdlog::error("download popen failed");
@@ -162,7 +154,7 @@ int main() {
     while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
       spdlog::debug("dl: {}", string(buffer));
     }
-    ret = pclose(pipe);
+    int ret = pclose(pipe);
     spdlog::debug("download exit code: {}", ret);
 
     ifstream test(filename);
