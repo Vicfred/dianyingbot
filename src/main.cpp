@@ -93,7 +93,6 @@ static string random_hex(size_t bytes) {
   return s;
 }
 
-
 int main() {
   spdlog::set_level(spdlog::level::info);
   spdlog::set_pattern("[%Y-%m-%d %H:%M:%S] [%^%l%$] %v");
@@ -133,7 +132,8 @@ int main() {
         "-f "
         "\"bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/"
         "best[height<=720][ext=mp4]/best[height<=720]/best\" "
-        "--merge-output-format mp4 --no-playlist --no-progress -o \"" + outname + "\" ";
+        "--merge-output-format mp4 --no-playlist --no-progress -o \"" +
+        outname + "\" ";
     spdlog::debug("{}", flags);
 
     string download_cmd = "yt-dlp " + flags + qurl;
@@ -167,8 +167,8 @@ int main() {
 
     spdlog::info("Sending video");
     try {
-      bot->getApi().sendVideo(job.chatId,
-                              TgBot::InputFile::fromFile(basename, "video/mp4"));
+      bot->getApi().sendVideo(
+          job.chatId, TgBot::InputFile::fromFile(basename, "video/mp4"));
     } catch (exception &e) {
       bot->getApi().sendMessage(job.chatId, "Failed to send the video.");
       spdlog::error("Sending video failed, error: {}", e.what());
