@@ -28,8 +28,7 @@
 
 using namespace std;
 
-const string instructionsHtml =
-    R"( <b>How to use this bot (no commands needed)</b>
+const string instructionsHtml = R"( <b>How to use this bot (no commands needed)</b>
 
 - Just send me a video link. That's it.
 - Supported: YouTube, Instagram, TikTok, Xiaohongshu.
@@ -93,9 +92,35 @@ static string random_hex(size_t bytes) {
   return s;
 }
 
-int main() {
+static string get_cookies_path(int argc, char **argv) {
+  string cookies = "/etc/dianyingbot/cookies.txt";
+
+  if (const char *env = getenv("DIANYING_COOKIES"); env && env[0] != '\0') {
+    cookies = env;
+  }
+
+  for (int i = 1; i < argc; i++) {
+    if (string(argv[i]) == "--cookies") {
+      if (i + 1 < argc) {
+        cookies = argv[i + 1];
+        i++;
+      }
+    }
+  }
+
+  return cookies;
+}
+
+int main(int argc, char **argv) {
   spdlog::set_level(spdlog::level::info);
   spdlog::set_pattern("[%Y-%m-%d %H:%M:%S] [%^%l%$] %v");
+
+  const string cookies_path = get_cookies_path(argc, argv);
+  if (!filesystem::exists(cookies_path)) {
+    spdlog::warn("cookies file not found at {}", cookies_path);
+  } else {
+    spdlog::info("cookies enabled");
+  }
 
   string token(getenv("DIANYINGTOKEN"));
   unique_ptr<TgBot::Bot> bot = make_unique<TgBot::Bot>(token);
@@ -128,13 +153,15 @@ int main() {
 
     string qurl = shell_quote(url);
     string outname = random_hex(16) + ".mp4";
+
     string flags =
         "-f "
         "\"bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/"
         "best[height<=720][ext=mp4]/best[height<=720]/best\" "
-        "--cookies /home/vicfred/brave.filtered.txt "
+        "--cookies " + shell_quote(cookies_path) + " "
         "--merge-output-format mp4 --no-playlist --no-progress -o \"" +
         outname + "\" ";
+
     spdlog::debug("{}", flags);
 
     string download_cmd = "yt-dlp " + flags + qurl;
