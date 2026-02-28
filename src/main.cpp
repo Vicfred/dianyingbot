@@ -132,6 +132,7 @@ int main() {
         "-f "
         "\"bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/"
         "best[height<=720][ext=mp4]/best[height<=720]/best\" "
+        "--cookies /home/vicfred/brave.filtered.txt"
         "--merge-output-format mp4 --no-playlist --no-progress -o \"" +
         outname + "\" ";
     spdlog::debug("{}", flags);
