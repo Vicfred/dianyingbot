@@ -154,10 +154,23 @@ int main(int argc, char **argv) {
     string qurl = shell_quote(url);
     string outname = random_hex(16) + ".mp4";
 
+    bool is_youtube =
+        url.find("youtube.com/") != string::npos ||
+        url.find("youtu.be/") != string::npos;
+
+    string format;
+    if (is_youtube) {
+      format =
+          "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/"
+          "best[height<=720][ext=mp4]/best[height<=720]/best";
+    } else {
+      format =
+          "bestvideo+bestaudio/"
+          "best";
+    }
+
     string flags =
-        "-f "
-        "\"bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/"
-        "best[height<=720][ext=mp4]/best[height<=720]/best\" "
+        "-f " + shell_quote(format) + " "
         "--cookies " + shell_quote(cookies_path) + " "
         "--merge-output-format mp4 --no-playlist --no-progress -o \"" +
         outname + "\" ";
