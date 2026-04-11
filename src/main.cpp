@@ -261,7 +261,7 @@ int main(int argc, char **argv) {
   }
 
   const set<int64_t> allowed_users = {3376040, 265288934, 1216729714,
-                                      6540848155, 1844076108};
+                                      6540848155, 1844076108, 11373889};
 
   bot->getEvents().onAnyMessage([&](TgBot::Message::Ptr message) {
     if (!message || !message->chat || !message->from) {
