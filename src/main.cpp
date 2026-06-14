@@ -28,7 +28,8 @@
 
 using namespace std;
 
-const string instructionsHtml = R"( <b>How to use this bot (no commands needed)</b>
+const string instructionsHtml =
+    R"( <b>How to use this bot (no commands needed)</b>
 
 - Just send me a video link. That's it.
 - Supported: YouTube, Instagram, TikTok, Xiaohongshu.
@@ -154,24 +155,30 @@ int main(int argc, char **argv) {
     string qurl = shell_quote(url);
     string outname = random_hex(16) + ".mp4";
 
-    bool is_youtube =
-        url.find("youtube.com/") != string::npos ||
-        url.find("youtu.be/") != string::npos;
+    bool is_youtube = url.find("youtube.com/") != string::npos ||
+                      url.find("youtu.be/") != string::npos;
 
     string format;
     if (is_youtube) {
-      format =
-          "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/"
-          "best[height<=720][ext=mp4]/best[height<=720]/best";
+      format = "bestvideo[height<=720][vcodec^=avc1][ext=mp4]+bestaudio[acodec^"
+               "=mp4a][ext=m4a]/"
+               "best[height<=720][vcodec^=avc1][acodec^=mp4a][ext=mp4]/"
+               "best[height<=720][vcodec^=avc1][ext=mp4][acodec!=none]/"
+               "best[height<=720][ext=mp4][acodec!=none]";
     } else {
-      format =
-          "bestvideo+bestaudio/"
-          "best";
+      format = "best[height<=1080][vcodec=h264][acodec!=none]/"
+               "best[height<=1080][vcodec^=avc1][acodec!=none]/"
+               "best[height<=720][vcodec=h264][acodec!=none]/"
+               "best[height<=720][vcodec^=avc1][acodec!=none]/"
+               "best[acodec!=none]/best";
     }
 
     string flags =
-        "-f " + shell_quote(format) + " "
-        "--cookies " + shell_quote(cookies_path) + " "
+        "-f " + shell_quote(format) +
+        " "
+        "--cookies " +
+        shell_quote(cookies_path) +
+        " "
         "--merge-output-format mp4 --no-playlist --no-progress -o \"" +
         outname + "\" ";
 
@@ -260,8 +267,9 @@ int main(int argc, char **argv) {
     });
   }
 
-  const set<int64_t> allowed_users = {3376040, 265288934, 1216729714,
-                                      6540848155, 1844076108, 11373889, 52173064};
+  const set<int64_t> allowed_users = {3376040,    265288934,  1216729714,
+                                      6540848155, 1844076108, 11373889,
+                                      52173064};
 
   bot->getEvents().onAnyMessage([&](TgBot::Message::Ptr message) {
     if (!message || !message->chat || !message->from) {
