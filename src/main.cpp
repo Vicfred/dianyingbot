@@ -179,6 +179,8 @@ int main(int argc, char **argv) {
 
     if (is_instagram) {
       flags += "--cookies " + shell_quote(cookies_path) + " ";
+    } else {
+      flags += "--ignore-config --no-cookies --impersonate chrome ";
     }
 
     flags += "--merge-output-format mp4 --no-playlist --no-progress -o \"" +
