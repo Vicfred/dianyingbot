@@ -157,6 +157,8 @@ int main(int argc, char **argv) {
 
     bool is_youtube = url.find("youtube.com/") != string::npos ||
                       url.find("youtu.be/") != string::npos;
+    bool is_instagram = url.find("instagram.com/") != string::npos ||
+                        url.find("instagr.am/") != string::npos;
 
     string format;
     if (is_youtube) {
@@ -173,14 +175,14 @@ int main(int argc, char **argv) {
                "best[acodec!=none]/best";
     }
 
-    string flags =
-        "-f " + shell_quote(format) +
-        " "
-        "--cookies " +
-        shell_quote(cookies_path) +
-        " "
-        "--merge-output-format mp4 --no-playlist --no-progress -o \"" +
-        outname + "\" ";
+    string flags = "-f " + shell_quote(format) + " ";
+
+    if (is_instagram) {
+      flags += "--cookies " + shell_quote(cookies_path) + " ";
+    }
+
+    flags += "--merge-output-format mp4 --no-playlist --no-progress -o \"" +
+             outname + "\" ";
 
     spdlog::debug("{}", flags);
 
